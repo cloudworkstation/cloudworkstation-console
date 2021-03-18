@@ -22,7 +22,8 @@ const entitlementSlice = createSlice({
   name: 'entitlement',
   initialState: { 
     entitlements: [], 
-    loading: 'n/a', 
+    loading: 'idle', 
+    loaded: 'no',
     error: '',
   },
   reducers: {
@@ -32,14 +33,18 @@ const entitlementSlice = createSlice({
   extraReducers: {
     [fetchAll.fulfilled]: (state, action) => {
       state.loading = "idle";
+      state.loaded = "yes";
       state.error = "";
-      state.instances = action.payload;
+      state.entitlements = action.payload;
     },
     [fetchAll.pending]: state => {
       state.loading = "yes";
+      state.loaded = "no";
     },
     [fetchAll.rejected]: (state, action) => {
       state.loading = "idle";
+      state.loaded = "no";
+      state.entitlements = [];
       console.log(action.error.message);
       state.error = action.error.message;
     },
@@ -49,6 +54,7 @@ const entitlementSlice = createSlice({
 //export const { setOrder, setOrderBy, setSelected, setPage, setRowsPerPage } = instanceSlice.actions;
 
 export const selectLoading = state => state.entitlement.loading;
-export const selectEntitlements = state => state.entitlement.instances;
+export const selectLoaded = state => state.entitlement.loaded;
+export const selectEntitlements = state => state.entitlement.entitlements;
 
 export default entitlementSlice.reducer;

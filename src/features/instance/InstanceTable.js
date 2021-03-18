@@ -17,7 +17,8 @@ import {
   selectSelected,
   selectPage,
   selectRowsPerPage,
-  selectInstances
+  selectInstances,
+  deleteInstance
 } from './instanceSlice';
 
 import { selectNav } from '../navigation/navigationSlice';
@@ -38,11 +39,13 @@ import Paper from '@material-ui/core/Paper';
 import Checkbox from '@material-ui/core/Checkbox';
 import IconButton from '@material-ui/core/IconButton';
 import Tooltip from '@material-ui/core/Tooltip';
-import MoreIcon from '@material-ui/icons/More';
-import ErrorOutlineIcon from '@material-ui/icons/ErrorOutline';
+import MenuItem from '@material-ui/core/MenuItem';
+import Menu from '@material-ui/core/Menu';
+import MenuIcon from '@material-ui/icons/Menu';
 import PlayArrowIcon from '@material-ui/icons/PlayArrow';
-import CheckCircleOutlineIcon from '@material-ui/icons/CheckCircleOutline';
-import { red, green, blue } from '@material-ui/core/colors';
+import { green } from '@material-ui/core/colors';
+
+import ConfirmationBox from './ConfirmationBox';
 
 function descendingComparator(a, b, orderBy) {
   if (b[orderBy] < a[orderBy]) {
@@ -151,7 +154,36 @@ const useToolbarStyles = makeStyles((theme) => ({
 
 const EnhancedTableToolbar = (props) => {
   const classes = useToolbarStyles();
-  const { numSelected, onGetInfoClick } = props;
+  const dispatch = useDispatch();
+
+  const { numSelected } = props;
+
+  const [ anchorEl, setAnchorEl ] = useState(null);
+  const [ confirmationBoxOpen, setConfirmationBoxOpen ] = useState(false);
+
+  const selected = useSelector(selectSelected);
+
+  const handleMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const openConfirmationBox = (event) => {
+    setConfirmationBoxOpen(true);
+    setAnchorEl(null);
+  }
+
+  const closeConfirmationBox = (event) => {
+    setConfirmationBoxOpen(false);
+  }
+
+  const terminateInstance = () => {
+    setConfirmationBoxOpen(false);
+    dispatch(deleteInstance({id: selected[0]}));
+  }
 
   return (
     <Toolbar
@@ -170,11 +202,29 @@ const EnhancedTableToolbar = (props) => {
       )}
 
       {numSelected > 0 ? (
-        <Tooltip title="Get more information">
-          <IconButton aria-label="delete" onClick={onGetInfoClick}>
-            <MoreIcon />
-          </IconButton>
-        </Tooltip>
+        <div>
+          <Tooltip title="Get more information">
+            <IconButton aria-label="menu" onClick={handleMenuOpen}>
+              <MenuIcon />
+            </IconButton>
+          </Tooltip>
+          <Menu
+            id="simple-menu"
+            anchorEl={anchorEl}
+            keepMounted
+            open={Boolean(anchorEl)}
+            onClose={handleMenuClose}
+          >
+            <MenuItem onClick={openConfirmationBox}>Terminate</MenuItem>
+            <MenuItem onClick={handleMenuClose}>Suspend</MenuItem>
+            <MenuItem onClick={handleMenuClose}>Shutdown</MenuItem>
+          </Menu>
+          <ConfirmationBox 
+            open={confirmationBoxOpen} 
+            close={closeConfirmationBox}
+            terminate={terminateInstance}
+          />
+        </div>
       ) : (
         <div/>
       )}
@@ -265,7 +315,7 @@ export default function PipelineTable() {
       return instance.state === "running";
     }
     if(nav === "stopped") {
-      return instance.state != "running"
+      return instance.state !== "running"
     }
     return false;
   }
@@ -273,7 +323,7 @@ export default function PipelineTable() {
   return (
     <div className={classes.root}>
       <Paper className={classes.paper}>
-        <EnhancedTableToolbar numSelected={selected.length} onGetInfoClick={() => {}} />
+        <EnhancedTableToolbar numSelected={selected.length} />
         <TableContainer>
           <Table
             className={classes.table}

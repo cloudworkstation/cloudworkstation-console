@@ -10,7 +10,7 @@ import {
 
 import {
   fetchAll,
-  selectLoading,
+  selectLoaded,
   selectEntitlements
 } from './../entitlement/entitlementSlice';
 
@@ -22,7 +22,7 @@ const fabStyle = {
 
 function AddInstanceButton() {
   const dispatch = useDispatch();
-  const entitlementLoading = useSelector(selectLoading);
+  const entitlementLoaded = useSelector(selectLoaded);
   const entitlements = useSelector(selectEntitlements);
 
   const [loadPage] = useState(0);
@@ -42,17 +42,13 @@ function AddInstanceButton() {
   }
 
   const createNewInstance = function() {
-    if(entitlementLoading === "idle") {
+    if(entitlementLoaded === "yes") {
       console.log("entitlements loaded", entitlements);
       if(validEntitlement()) {
         console.log("there's a valid entitlement");
         dispatch(setOpenNewDesktopForm(true));
       }
     }
-    /*dispatch(createInstance({
-      machine_def_id: "md-t3-large",
-      screen_geometry: "1920x1080"
-    }));*/
   }
 
   return (

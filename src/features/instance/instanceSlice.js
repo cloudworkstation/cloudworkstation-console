@@ -45,6 +45,16 @@ export const createInstance = createAsyncThunk(
   }
 )
 
+export const deleteInstance = createAsyncThunk(
+  'instance/delete',
+  async (item, thunkAPI) => {
+    const response = await axios.delete(API_BASE() + "api/instance/" + item.id);
+    return {
+      id: item.id
+    }
+  }
+)
+
 const instanceSlice = createSlice({
   name: 'instance',
   initialState: { 
