@@ -50,7 +50,8 @@ export const deleteInstance = createAsyncThunk(
   async (item, thunkAPI) => {
     const response = await axios.delete(API_BASE() + "api/instance/" + item.id);
     return {
-      id: item.id
+      id: item.id,
+      status: response.data.status
     }
   }
 )
