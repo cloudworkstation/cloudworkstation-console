@@ -40,7 +40,8 @@ export const createInstance = createAsyncThunk(
       launchtime: "",
       machine_def_id: item.machine_def_id,
       screengeometry: item.screen_geometry,
-      state: "launching"
+      state: "",
+      pending_action: "creating"
     }
   }
 )
@@ -48,9 +49,38 @@ export const createInstance = createAsyncThunk(
 export const deleteInstance = createAsyncThunk(
   'instance/delete',
   async (item, thunkAPI) => {
-    const response = await axios.delete(API_BASE() + "api/instance/" + item.id);
+    //const response = await axios.delete(API_BASE() + "api/instance/" + item.id);
     return {
       id: item.id,
+      status: "okay"
+      //status: response.data.status
+    }
+  }
+)
+
+export const stopInstance = createAsyncThunk(
+  'instance/stop',
+  async (item, thunkAPI) => {
+    const response = await axios.patch(API_BASE() + "api/instance/" + item.id, {
+      state: "stopped"
+    });
+    return {
+      id: item.id,
+      //status: "okay"
+      status: response.data.status
+    }
+  }
+)
+
+export const startInstance = createAsyncThunk(
+  'instance/start',
+  async (item, thunkAPI) => {
+    const response = await axios.patch(API_BASE() + "api/instance/" + item.id, {
+      state: "running"
+    });
+    return {
+      id: item.id,
+      //status: "okay"
       status: response.data.status
     }
   }
@@ -104,10 +134,65 @@ const instanceSlice = createSlice({
       console.log(action.error.message);
       state.error = action.error.message;
     },
+
     [createInstance.fulfilled]: (state, action) => {
       state.instances.push(action.payload);
     },
     [createInstance.rejected]: (state, action) => {
+      console.log(action.error.message);
+      state.error = action.error.message;
+    },
+
+    [deleteInstance.fulfilled]: (state, action) => {
+      console.log("updating pending state for instance with id", action.payload.id);
+      state.instances = state.instances.map((instance) => {
+        if(instance.id === action.payload.id) {
+          return {
+            ...instance,
+            ...{pending_action: "Terminating"}
+          }
+        } else {
+          return instance;
+        }
+      })
+    },
+    [deleteInstance.rejected]: (state, action) => {
+      console.log(action.error.message);
+      state.error = action.error.message;
+    },
+
+    [stopInstance.fulfilled]: (state, action) => {
+      console.log("updating pending state for instance with id", action.payload.id);
+      state.instances = state.instances.map((instance) => {
+        if(instance.id === action.payload.id) {
+          return {
+            ...instance,
+            ...{pending_action: "Stopping"}
+          }
+        } else {
+          return instance;
+        }
+      })
+    },
+    [stopInstance.rejected]: (state, action) => {
+      console.log(action.error.message);
+      state.error = action.error.message;
+    },
+
+    [startInstance.fulfilled]: (state, action) => {
+      console.log("updating pending state for instance with id", action.payload.id);
+      state.instances = state.instances.map((instance) => {
+        if(instance.id === action.payload.id) {
+          return {
+            ...instance,
+            ...{pending_action: "Starting"}
+          }
+        } else {
+          return instance;
+        }
+      })
+    },
+    [startInstance.rejected]: (state, action) => {
       console.log(action.error.message);
       state.error = action.error.message;
     },

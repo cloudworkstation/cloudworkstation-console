@@ -18,13 +18,16 @@ import {
   selectPage,
   selectRowsPerPage,
   selectInstances,
-  deleteInstance
+  deleteInstance,
+  stopInstance,
+  startInstance
 } from './instanceSlice';
 
 import { selectNav } from '../navigation/navigationSlice';
 
 import { lighten, makeStyles } from '@material-ui/core/styles';
 
+import Button from '@material-ui/core/Button';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
 import TableCell from '@material-ui/core/TableCell';
@@ -42,10 +45,9 @@ import Tooltip from '@material-ui/core/Tooltip';
 import MenuItem from '@material-ui/core/MenuItem';
 import Menu from '@material-ui/core/Menu';
 import MenuIcon from '@material-ui/icons/Menu';
-import PlayArrowIcon from '@material-ui/icons/PlayArrow';
-import { green } from '@material-ui/core/colors';
 
 import ConfirmationBox from './ConfirmationBox';
+import YesNoBox from './YesNoBox';
 
 function descendingComparator(a, b, orderBy) {
   if (b[orderBy] < a[orderBy]) {
@@ -77,6 +79,7 @@ const headCells = [
   { id: 'id', numeric: false, disablePadding: true, label: 'Desktop ID' },
   { id: 'machine_def_id', sortDisabled: false, numeric: false, disablePadding: true, label: 'Machine Type' },
   { id: 'state', numeric: false, disablePadding: false, label: 'Status' },
+  { id: 'pending_action', numeric: false, disablePadding: false, label: 'Pending Action' },
   { id: 'launchtime', numeric: false, disablePadding: false, label: 'Launch Date/Time' },
   { id: 'screengeometry', sortDisabled: false, numeric: false, disablePadding: false, label: 'Screen Geometry' },
   { id: 'actions', sortDisabled: true, numeric: false, disablePadding: false, label: 'Actions' }
@@ -160,8 +163,10 @@ const EnhancedTableToolbar = (props) => {
 
   const [ anchorEl, setAnchorEl ] = useState(null);
   const [ confirmationBoxOpen, setConfirmationBoxOpen ] = useState(false);
+  const [ shutdownBoxOpen, setShutdownBoxOpen ] = useState(false);
 
   const selected = useSelector(selectSelected);
+  const instances = useSelector(selectInstances);
 
   const handleMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -176,13 +181,40 @@ const EnhancedTableToolbar = (props) => {
     setAnchorEl(null);
   }
 
+  const openShutdownBox = (event) => {
+    setShutdownBoxOpen(true);
+    setAnchorEl(null);
+  }
+
   const closeConfirmationBox = (event) => {
     setConfirmationBoxOpen(false);
+  }
+
+  const closeShutdownBox = (event) => {
+    setShutdownBoxOpen(false);
   }
 
   const terminateInstance = () => {
     setConfirmationBoxOpen(false);
     dispatch(deleteInstance({id: selected[0]}));
+  }
+
+  const shutdownInstance = () => {
+    dispatch(stopInstance({id: selected[0]}));
+  }
+
+  const selectedInstanceState = () => {
+    const instance = instances.filter(instance => instance.id === selected[0]);
+    return instance[0].state;
+  }
+
+  const startOrStopInstance = () => {
+    if(selectedInstanceState() === "running") {
+      openShutdownBox();
+    } else {
+      dispatch(startInstance({id: selected[0]}));
+      setAnchorEl(null);
+    }
   }
 
   return (
@@ -216,13 +248,19 @@ const EnhancedTableToolbar = (props) => {
             onClose={handleMenuClose}
           >
             <MenuItem onClick={openConfirmationBox}>Terminate</MenuItem>
-            <MenuItem onClick={handleMenuClose}>Suspend</MenuItem>
-            <MenuItem onClick={handleMenuClose}>Shutdown</MenuItem>
+            <MenuItem onClick={startOrStopInstance}>{selectedInstanceState() === "running" ? "Shutdown" : "Startup"}</MenuItem>
           </Menu>
           <ConfirmationBox 
             open={confirmationBoxOpen} 
             close={closeConfirmationBox}
             terminate={terminateInstance}
+          />
+          <YesNoBox
+            open={shutdownBoxOpen}
+            close={closeShutdownBox}
+            title="Shutdown Desktop"
+            message="Are you sure you want to shutdown your desktop?  You will lose any unsaved data.  This action cannot be undone once started."
+            yes={shutdownInstance}
           />
         </div>
       ) : (
@@ -320,6 +358,16 @@ export default function PipelineTable() {
     return false;
   }
 
+  var launchDesktopWindow = function(id, event) {
+    const currentUrl = new URL(window.location);
+    //const protocol = currentUrl.protocol;
+    //const hostname = currentUrl.hostname;
+    const protocol = "https";
+    const hostname = "desktops.tstaucloud.com";
+    window.open(protocol + "://" + hostname + "/desktop/" + id + "/workstation-0.0.1/", "_blank");
+    event.stopPropagation();
+  }
+
   return (
     <div className={classes.root}>
       <Paper className={classes.paper}>
@@ -346,7 +394,6 @@ export default function PipelineTable() {
                 .map((row, index) => {
                   const isItemSelected = isSelected(row.id);
                   const labelId = `enhanced-table-checkbox-${index}`;
-
                   return (
                     <TableRow
                       hover
@@ -367,12 +414,15 @@ export default function PipelineTable() {
                         {row.id}
                       </TableCell>
                       <TableCell align="left">{row.machine_def_id}</TableCell>
-                      <TableCell align="left">
-                        {row.state === "running" && <PlayArrowIcon style={{ color: green[500] }} />}
-                      </TableCell>
+                      <TableCell align="left">{row.state.replace(/\b\w/g, l => l.toUpperCase())}</TableCell>
+                      <TableCell align="left">{row.pending_action}</TableCell>
                       <TableCell align="left">{moment.utc(row.launchtime).fromNow()}</TableCell>
                       <TableCell align="left">{row.screengeometry}</TableCell>
-                      <TableCell align="left"></TableCell>
+                      <TableCell align="left">
+                        {row.state === "running" && <Button color="primary" onClick={launchDesktopWindow.bind(this, row.id)}>
+                          Launch Desktop
+                        </Button>}
+                      </TableCell>
                     </TableRow>
                   );
                 })}
