@@ -1,18 +1,11 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import axios from "axios";
-
-var API_BASE = function() {
-  if(window.location.hostname === "localhost") {
-    return "http://localhost:5000/";
-  } else {
-    return "/"
-  }
-}
+import getApiEndpoint from "../api/endpoint";
 
 export const fetchAll = createAsyncThunk(
   'entitlement/fetchAll',
   async (thunkAPI) => {
-    const response = await axios.get(API_BASE() + "api/entitlement");
+    const response = await axios.get(getApiEndpoint() + "/entitlement");
     console.log("got following response", response.data);
     return response.data;
   }
@@ -50,8 +43,6 @@ const entitlementSlice = createSlice({
     },
   }
 })
-
-//export const { setOrder, setOrderBy, setSelected, setPage, setRowsPerPage } = instanceSlice.actions;
 
 export const selectLoading = state => state.entitlement.loading;
 export const selectLoaded = state => state.entitlement.loaded;

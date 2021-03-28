@@ -1,18 +1,11 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import axios from "axios";
-
-var API_BASE = function() {
-  if(window.location.hostname === "localhost") {
-    return "http://localhost:5000/";
-  } else {
-    return "/"
-  }
-}
+import getApiEndpoint from "../api/endpoint";
 
 export const fetchAll = createAsyncThunk(
   'instance/fetchAll',
   async (thunkAPI) => {
-    const response = await axios.get(API_BASE() + "api/instance");
+    const response = await axios.get(getApiEndpoint() + "/instance");
     console.log("got following response", response.data);
     var instances = [];
     for (const key in response.data) {
@@ -28,7 +21,7 @@ export const fetchAll = createAsyncThunk(
 export const createInstance = createAsyncThunk(
   'instance/create',
   async (item, thunkAPI) => {
-    const response = await axios.post(API_BASE() + "api/instance", {
+    const response = await axios.post(getApiEndpoint() + "/instance", {
       action: "create",
       screen_geometry: item.screen_geometry,
       machine_def_id: item.machine_def_id
@@ -49,11 +42,11 @@ export const createInstance = createAsyncThunk(
 export const deleteInstance = createAsyncThunk(
   'instance/delete',
   async (item, thunkAPI) => {
-    //const response = await axios.delete(API_BASE() + "api/instance/" + item.id);
+    const response = await axios.delete(getApiEndpoint() + "/instance/" + item.id);
     return {
       id: item.id,
-      status: "okay"
-      //status: response.data.status
+      //status: "okay"
+      status: response.data.status
     }
   }
 )
@@ -61,7 +54,7 @@ export const deleteInstance = createAsyncThunk(
 export const stopInstance = createAsyncThunk(
   'instance/stop',
   async (item, thunkAPI) => {
-    const response = await axios.patch(API_BASE() + "api/instance/" + item.id, {
+    const response = await axios.patch(getApiEndpoint() + "/instance/" + item.id, {
       state: "stopped"
     });
     return {
@@ -75,7 +68,7 @@ export const stopInstance = createAsyncThunk(
 export const startInstance = createAsyncThunk(
   'instance/start',
   async (item, thunkAPI) => {
-    const response = await axios.patch(API_BASE() + "api/instance/" + item.id, {
+    const response = await axios.patch(getApiEndpoint() + "/instance/" + item.id, {
       state: "running"
     });
     return {
@@ -118,6 +111,19 @@ const instanceSlice = createSlice({
     },
     setOpenNewDesktopForm: (state, action) => {
       state.openNewDesktopForm = action.payload
+    },
+    setDesktopState: (state, action) => {
+      state.instances = state.instances.map((instance) => {
+        if(instance.id === action.payload.id) {
+          return {
+            ...instance,
+            ...{pending_action: "",
+                state: action.payload.state}
+          }
+        } else {
+          return instance;
+        }
+      })
     }
   },
   extraReducers: {
@@ -199,7 +205,7 @@ const instanceSlice = createSlice({
   }
 })
 
-export const { setOrder, setOrderBy, setSelected, setPage, setRowsPerPage, setOpenNewDesktopForm } = instanceSlice.actions;
+export const { setOrder, setOrderBy, setSelected, setPage, setRowsPerPage, setOpenNewDesktopForm, setDesktopState } = instanceSlice.actions;
 
 export const selectOrder = state => state.instance.order;
 export const selectOrderBy = state => state.instance.orderBy;

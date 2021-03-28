@@ -20,7 +20,8 @@ import {
   selectInstances,
   deleteInstance,
   stopInstance,
-  startInstance
+  startInstance,
+  setDesktopState
 } from './instanceSlice';
 
 import { selectNav } from '../navigation/navigationSlice';
@@ -48,6 +49,8 @@ import MenuIcon from '@material-ui/icons/Menu';
 
 import ConfirmationBox from './ConfirmationBox';
 import YesNoBox from './YesNoBox';
+
+import registerEventStream from "../api/events";
 
 function descendingComparator(a, b, orderBy) {
   if (b[orderBy] < a[orderBy]) {
@@ -313,7 +316,17 @@ export default function PipelineTable() {
   const [loadPage] = useState(0);
 
   useEffect(() => {
-    dispatch(fetchAll())
+    dispatch(fetchAll());
+
+    registerEventStream(function(e) {
+      console.log(e);
+      var obj = JSON.parse(e);
+      dispatch(setDesktopState({
+        id: obj.desktop_id,
+        state: obj.state
+      }));
+    });
+
   }, [loadPage, dispatch]);
 
   const handleRequestSort = (event, property) => {
@@ -360,10 +373,8 @@ export default function PipelineTable() {
 
   var launchDesktopWindow = function(id, event) {
     const currentUrl = new URL(window.location);
-    //const protocol = currentUrl.protocol;
-    //const hostname = currentUrl.hostname;
-    const protocol = "https";
-    const hostname = "desktops.tstaucloud.com";
+    const protocol = currentUrl.protocol;
+    const hostname = currentUrl.hostname;
     window.open(protocol + "://" + hostname + "/desktop/" + id + "/workstation-0.0.1/", "_blank");
     event.stopPropagation();
   }
