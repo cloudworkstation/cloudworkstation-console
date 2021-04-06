@@ -373,9 +373,8 @@ export default function PipelineTable() {
 
   var launchDesktopWindow = function(id, event) {
     const currentUrl = new URL(window.location);
-    const protocol = currentUrl.protocol;
     const hostname = currentUrl.hostname;
-    window.open(protocol + "://" + hostname + "/desktop/" + id + "/workstation-0.0.1/", "_blank");
+    window.open("https://" + hostname + "/desktop/" + id + "/workstation-0.0.1/", "_blank");
     event.stopPropagation();
   }
 
